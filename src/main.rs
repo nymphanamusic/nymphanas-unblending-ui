@@ -3,10 +3,12 @@
 
 use crate::layer::LayerBlending;
 use eframe::{egui, Frame};
-use egui::Color32;
+use egui::{Color32, Vec2};
 use layer::Layer;
-use std::ops::{Deref, DerefMut};
-use std::path::Path;
+use rfd::FileDialog;
+use std::fs::File;
+use std::io::Read;
+use std::path::PathBuf;
 
 mod layer;
 
@@ -26,28 +28,58 @@ fn main() -> eframe::Result {
     )
 }
 
-struct NymphanasUnblendingUI {
-    image: Option<Box<Path>>,
+struct NymphanasUnblendingUI<'a> {
+    image_path: Option<PathBuf>,
+    image: Option<Box<egui::Image<'a>>>,
     layers: Vec<Layer>,
 }
 
-impl Default for NymphanasUnblendingUI {
+impl Default for NymphanasUnblendingUI<'_> {
     fn default() -> Self {
         Self {
+            image_path: None,
             image: None,
             layers: vec![],
         }
     }
 }
 
-impl eframe::App for NymphanasUnblendingUI {
+impl eframe::App for NymphanasUnblendingUI<'_> {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut Frame) {
+        ctx.style_mut(|style| {
+            style.spacing.interact_size = Vec2::new(60.0, 30.0);
+            style.spacing.item_spacing = Vec2::new(10.0, 10.0);
+        });
+
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.heading("Nymphana's Unblending UI");
+            ui.horizontal(|ui| {
+                if ui.button("Select file").clicked() {
+                    let files = FileDialog::new()
+                        .add_filter("Image", &["bmp", "jpeg", "jpg", "png"])
+                        .set_directory("~")
+                        .pick_file();
+                    files.inspect(|x| self.image_path = Some(x.into()));
+                    self.load_image();
+                }
+            });
+
+            // Image
+            ui.label(format!(
+                "Selected file: {}",
+                match &self.image_path {
+                    Some(y) => y.to_str().unwrap_or("None"),
+                    None => "None",
+                }
+            ));
+            if let Some(image) = &self.image {
+                ui.add((*image.clone()).max_size([200.0, 400.0].into()));
+            };
+
             if ui.button("Add layer").clicked() {
                 self.layers.push(Layer {
                     type_: LayerBlending::Normal,
-                    color: Color32::from_gray(255).into(),
+                    color: Color32::from_gray(255),
                     variance: 0.5,
                 });
             }
@@ -62,5 +94,21 @@ impl eframe::App for NymphanasUnblendingUI {
                 ));
             }
         });
+    }
+}
+
+impl NymphanasUnblendingUI<'_> {
+    fn load_image(&mut self) {
+        if let Some(path) = &self.image_path
+            && let Ok(mut file) = File::open(path)
+        {
+            let mut bytes = Vec::new();
+            if file.read_to_end(&mut bytes).is_ok() {
+                self.image = Some(Box::new(egui::Image::from_bytes(
+                    format!["bytes://{}", path.to_str().unwrap()],
+                    bytes,
+                )));
+            }
+        }
     }
 }
