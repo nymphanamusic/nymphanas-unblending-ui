@@ -1,7 +1,14 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 #![expect(rustdoc::missing_crate_level_docs)]
 
+use crate::layer::LayerBlending;
 use eframe::{egui, Frame};
+use egui::Color32;
+use layer::Layer;
+use std::ops::{Deref, DerefMut};
+use std::path::Path;
+
+mod layer;
 
 fn main() -> eframe::Result {
     env_logger::init();
@@ -20,15 +27,15 @@ fn main() -> eframe::Result {
 }
 
 struct NymphanasUnblendingUI {
-    name: String,
-    age: u32,
+    image: Option<Box<Path>>,
+    layers: Vec<Layer>,
 }
 
 impl Default for NymphanasUnblendingUI {
     fn default() -> Self {
         Self {
-            name: "Nymphana".to_owned(),
-            age: 26,
+            image: None,
+            layers: vec![],
         }
     }
 }
@@ -37,19 +44,23 @@ impl eframe::App for NymphanasUnblendingUI {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut Frame) {
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.heading("Nymphana's Unblending UI");
-            ui.horizontal(|ui| {
-                let name_label = ui.label("Your name: ");
-                ui.text_edit_singleline(&mut self.name)
-                    .labelled_by(name_label.id);
-                ui.add(egui::Slider::new(&mut self.age, 0..=100).text("age"));
-                if ui.button("Increment").clicked() {
-                    self.age += 1;
-                }
+            if ui.button("Add layer").clicked() {
+                self.layers.push(Layer {
+                    type_: LayerBlending::Normal,
+                    color: Color32::from_gray(255).into(),
+                    variance: 0.5,
+                });
+            }
+            for layer in &mut self.layers {
+                layer.draw(ui)
+            }
+            for (idx, layer) in self.layers.iter().enumerate() {
                 ui.label(format!(
-                    "Hey there {0} the {1} year old!",
-                    self.name, self.age
+                    "Layer \"{layer_idx}\" has color {color}",
+                    layer_idx = idx,
+                    color = layer.color.to_hex()
                 ));
-            });
+            }
         });
     }
 }
