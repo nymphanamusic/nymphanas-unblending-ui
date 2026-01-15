@@ -19,4 +19,4 @@ cxx-build = "1.0.192"
 cmake = "0.1.57"
 cc = "1.2.52"
 autocxx-build = "0.30.0"
-miette = "7.6.0"
+miette = { version = "7.6.0", features = ["fancy"] }
