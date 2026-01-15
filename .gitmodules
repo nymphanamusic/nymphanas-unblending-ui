@@ -1,0 +1,3 @@
+[submodule "include/unblending"]
+	path = include/unblending
+	url = https://github.com/yuki-koyama/unblending
