@@ -11,13 +11,7 @@ use std::io::Read;
 use std::path::PathBuf;
 
 mod layer;
-use autocxx::prelude::*;
-include_cpp! {
-    // #include "unblending/include/unblending.hpp"
-    #include "unblending/include/unblending/image_processing.hpp"
-    safety!(unsafe_ffi)
-    generate!("unblending::ColorImage")
-}
+mod unblending;
 
 fn main() -> eframe::Result {
     env_logger::init();

@@ -7,15 +7,15 @@ fn main() -> miette::Result<()> {
 
     // This assumes all your C++ bindings are in main.rs
     let mut cxx_cfg = autocxx_build::Builder::new(
-        "src/main.rs",
+        "src/unblending.rs",
         &[
-            &include_path.join("unblending"),
+            &include_path.join("unblending/unblending/include"),
             &include_path.join("eigen"),
         ],
     )
     .build()
     .into_diagnostic()?;
-    println!("cargo:rerun-if-changed=src/ffi.rs");
+    println!("cargo:rerun-if-changed=src/unblending.rs");
 
     cxx_cfg.compiler("g++");
     let mut c_cfg = cc::Build::default();
