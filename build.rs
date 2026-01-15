@@ -3,13 +3,13 @@ use miette::IntoDiagnostic;
 use std::path::PathBuf;
 
 fn main() -> miette::Result<()> {
-    let include_path = PathBuf::from("include");
+    let include_path = PathBuf::from("external");
 
     // This assumes all your C++ bindings are in main.rs
     let mut cxx_cfg = autocxx_build::Builder::new(
-        "src/ffi.rs",
+        "src/main.rs",
         &[
-            &include_path.join("unblending/unblending"),
+            &include_path.join("unblending"),
             &include_path.join("eigen"),
         ],
     )

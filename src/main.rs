@@ -13,8 +13,8 @@ use std::path::PathBuf;
 mod layer;
 use autocxx::prelude::*;
 include_cpp! {
-    // #include "include/unblending/unblending/include/unblending.hpp"
-    #include "include/unblending/image_processing.hpp"
+    // #include "unblending/include/unblending.hpp"
+    #include "unblending/include/unblending/image_processing.hpp"
     safety!(unsafe_ffi)
     generate!("unblending::ColorImage")
 }
