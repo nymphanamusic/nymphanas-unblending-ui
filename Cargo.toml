@@ -4,6 +4,8 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+autocxx = "0.30.0"
+cmake = "0.1.57"
 cxx = "1.0.192"
 eframe = "0.33.3"
 egui = "0.33.3"
@@ -14,3 +16,7 @@ rfd = "0.17.2"
 
 [build-dependencies]
 cxx-build = "1.0.192"
+cmake = "0.1.57"
+cc = "1.2.52"
+autocxx-build = "0.30.0"
+miette = "7.6.0"

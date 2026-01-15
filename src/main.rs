@@ -10,10 +10,11 @@ use std::fs::File;
 use std::io::Read;
 use std::path::PathBuf;
 
+mod ffi;
 mod layer;
 
 fn main() -> eframe::Result {
-    env_logger::init();
+    ffi::env_logger::init();
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default().with_inner_size([1280.0, 720.0]),
         ..Default::default()
