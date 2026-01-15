@@ -1,11 +1,26 @@
 use cmake::Config;
+use miette::IntoDiagnostic;
+use std::path::PathBuf;
 
-fn main() {
-    let mut cxx_cfg = cc::Build::default();
+fn main() -> miette::Result<()> {
+    let include_path = PathBuf::from("include");
+
+    // This assumes all your C++ bindings are in main.rs
+    let mut cxx_cfg = autocxx_build::Builder::new(
+        "src/ffi.rs",
+        &[
+            &include_path.join("unblending/unblending"),
+            &include_path.join("eigen"),
+        ],
+    )
+    .build()
+    .into_diagnostic()?;
+    println!("cargo:rerun-if-changed=src/ffi.rs");
+
     cxx_cfg.compiler("g++");
     let mut c_cfg = cc::Build::default();
     c_cfg.compiler("gcc");
-    let dst = Config::new("include/unblending")
+    let dst = Config::new(include_path.join("unblending"))
         .no_build_target(true)
         .no_default_flags(true)
         .define("UNBLENDING_BUILD_CLI_APP", "off")
@@ -23,4 +38,5 @@ fn main() {
 
     // println!("cargo:rerun-if-changed=src/blobstore.cc");
     // println!("cargo:rerun-if-changed=include/blobstore.h");
+    Ok(())
 }

@@ -10,11 +10,17 @@ use std::fs::File;
 use std::io::Read;
 use std::path::PathBuf;
 
-mod ffi;
 mod layer;
+use autocxx::prelude::*;
+include_cpp! {
+    // #include "include/unblending/unblending/include/unblending.hpp"
+    #include "include/unblending/image_processing.hpp"
+    safety!(unsafe_ffi)
+    generate!("unblending::ColorImage")
+}
 
 fn main() -> eframe::Result {
-    ffi::env_logger::init();
+    env_logger::init();
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default().with_inner_size([1280.0, 720.0]),
         ..Default::default()
