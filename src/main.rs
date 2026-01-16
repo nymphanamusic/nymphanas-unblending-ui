@@ -1,7 +1,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 #![expect(rustdoc::missing_crate_level_docs)]
 
-use crate::layer::LayerBlending;
+use crate::unblending::unblending::BlendMode;
 use eframe::{egui, Frame};
 use egui::{Color32, Vec2};
 use layer::Layer;
@@ -54,6 +54,9 @@ impl eframe::App for NymphanasUnblendingUI<'_> {
 
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.heading("Nymphana's Unblending UI");
+
+            if ui.button("Run unblending").clicked() {}
+
             ui.horizontal(|ui| {
                 if ui.button("Select file").clicked() {
                     let files = FileDialog::new()
@@ -77,15 +80,16 @@ impl eframe::App for NymphanasUnblendingUI<'_> {
                 ui.add((*image.clone()).max_size([200.0, 400.0].into()));
             };
 
+            // Layers
             if ui.button("Add layer").clicked() {
                 self.layers.push(Layer {
-                    type_: LayerBlending::Normal,
+                    blend_mode: BlendMode::Normal,
                     color: Color32::from_gray(255),
                     variance: 0.5,
                 });
             }
-            for layer in &mut self.layers {
-                layer.draw(ui)
+            for (idx, layer) in self.layers.iter_mut().enumerate() {
+                ui.push_id(idx, |ui| layer.draw(ui));
             }
             for (idx, layer) in self.layers.iter().enumerate() {
                 ui.label(format!(
