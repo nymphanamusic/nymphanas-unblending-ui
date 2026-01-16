@@ -8,5 +8,14 @@
   </component>
   <component name="VcsDirectoryMappings">
     <mapping directory="" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/external/eigen" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/external/unblending" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/external/unblending/external/cxxopts" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/external/unblending/external/json11" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/external/unblending/external/nlopt" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/external/unblending/external/nlopt-util" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/external/unblending/external/parallel-util" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/external/unblending/external/timer" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/external/unblending/external/tinycolormap" vcs="Git" />
   </component>
 </project>
