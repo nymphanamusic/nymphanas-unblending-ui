@@ -2,13 +2,20 @@
 #![expect(rustdoc::missing_crate_level_docs)]
 
 use crate::unblending::unblending::BlendMode;
-use eframe::{egui, Frame};
-use egui::{Color32, Vec2};
+use eframe::wgpu::TextureViewDescriptor;
+use eframe::{egui, egui_wgpu, Frame};
+use egui::load::TexturePoll;
+use egui::{Color32, SizeHint, TextureOptions, Vec2};
 use layer::Layer;
 use rfd::FileDialog;
 use std::fs::File;
 use std::io::Read;
 use std::path::PathBuf;
+use std::sync::mpsc::{Receiver, Sender};
+use std::sync::{mpsc, Arc};
+use std::thread;
+use std::thread::JoinHandle;
+use std::time::Duration;
 
 mod layer;
 mod unblending;
@@ -33,6 +40,8 @@ struct NymphanasUnblendingUI<'a> {
     image_path: Option<PathBuf>,
     image: Option<Box<egui::Image<'a>>>,
     layers: Vec<Layer>,
+    processor_handle: Option<JoinHandle<Result<(), ()>>>,
+    start_process_tx: Option<Sender<StartProcess>>,
 }
 
 impl Default for NymphanasUnblendingUI<'_> {
@@ -41,21 +50,27 @@ impl Default for NymphanasUnblendingUI<'_> {
             image_path: None,
             image: None,
             layers: vec![],
+            processor_handle: None,
+            start_process_tx: None,
         }
     }
 }
 
 impl eframe::App for NymphanasUnblendingUI<'_> {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut Frame) {
+        if let Some((start_process_tx, finish_process_rx)) = self.ensure_processor() {}
+
         ctx.style_mut(|style| {
             style.spacing.interact_size = Vec2::new(60.0, 30.0);
             style.spacing.item_spacing = Vec2::new(10.0, 10.0);
         });
 
-        egui::CentralPanel::default().show(ctx, |ui| {
+        egui::CentralPanel::default().show(&ctx, |ui| {
             ui.heading("Nymphana's Unblending UI");
 
-            if ui.button("Run unblending").clicked() {}
+            if ui.button("Run unblending").clicked() {
+                self.handle_begin_processing(&ctx, &_frame);
+            }
 
             ui.horizontal(|ui| {
                 if ui.button("Select file").clicked() {
@@ -116,4 +131,61 @@ impl NymphanasUnblendingUI<'_> {
             }
         }
     }
+
+    fn handle_begin_processing(&mut self, ctx: &egui::Context, frame: &Frame) {
+        if let Some(image) = &self.image
+            && let Some(start_process_tx) = &self.start_process_tx
+            && let Some(render_state) = frame.wgpu_render_state()
+        {
+            let load_result = image.source(&ctx).load(
+                &ctx,
+                TextureOptions::default(),
+                SizeHint::Scale(1.0.into()),
+            );
+            if let Ok(load_poll) = load_result {
+                start_process_tx
+                    .send((load_poll, render_state.renderer.clone()))
+                    .unwrap();
+            }
+        }
+    }
+
+    fn ensure_processor(&mut self) -> Option<(Sender<StartProcess>, Receiver<FinishProcess>)> {
+        if self.processor_handle.is_some() {
+            return None;
+        }
+        let (start_process_tx, start_process_rx) = mpsc::channel();
+        let (finish_process_tx, finish_process_rx) = mpsc::channel();
+        self.processor_handle = Some(thread::spawn(move || {
+            processor(start_process_rx, finish_process_tx)
+        }));
+
+        Some((start_process_tx, finish_process_rx))
+    }
+}
+
+type StartProcess = (TexturePoll, Arc<egui::mutex::RwLock<egui_wgpu::Renderer>>);
+type FinishProcess = ();
+
+fn processor(
+    start_process_rx: Receiver<StartProcess>,
+    finish_process_tx: Sender<FinishProcess>,
+) -> Result<(), ()> {
+    // (*_frame.wgpu_render_state().unwrap().renderer).read().texture()
+    for (image_poll, renderer) in start_process_rx {
+        while image_poll.is_pending() {
+            thread::sleep(Duration::from_secs_f32(0.1))
+        }
+        {
+            let read = renderer.read();
+            let texture = read.texture(&image_poll.texture_id().unwrap());
+            if let Some(texture) = texture
+                && let Some(texture) = &texture.texture
+            {
+                let view = texture.create_view(&TextureViewDescriptor::default());
+                view.texture().dimension()
+            }
+        }
+    }
+    Ok(())
 }
