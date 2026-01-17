@@ -4,15 +4,14 @@ use std::path::PathBuf;
 
 fn main() -> miette::Result<()> {
     let include_path = PathBuf::from("external");
+    let unblending_path = include_path.join("unblending/unblending/include");
+    let eigen_path = include_path.join("eigen");
+    let source_path = PathBuf::from("src");
 
     // This assumes all your C++ bindings are in main.rs
     let mut cxx_cfg = autocxx_build::Builder::new(
         "src/unblending.rs",
-        &[
-            &include_path.join("unblending/unblending/include"),
-            &include_path.join("eigen"),
-            &PathBuf::from("src"),
-        ],
+        &[&unblending_path, &eigen_path, &source_path],
     )
     .build()
     .into_diagnostic()?;
@@ -40,8 +39,9 @@ fn main() -> miette::Result<()> {
     cc::Build::default()
         .cpp(true)
         .compiler("g++")
-        .include("src")
-        .include(&include_path.join("eigen"))
+        .include(&source_path)
+        .include(&unblending_path)
+        .include(&eigen_path)
         .file("src/unblending_helpers.cpp")
         .compile("unblending_helpers");
     println!("cargo:rerun-if-changed=src/unblending_helpers.hpp");
