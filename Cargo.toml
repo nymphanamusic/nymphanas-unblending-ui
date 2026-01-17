@@ -5,6 +5,7 @@ edition = "2024"
 
 [dependencies]
 autocxx = "0.30.0"
+cc = "1.2.52"
 cmake = "0.1.57"
 cxx = "1.0.192"
 eframe = { version = "0.33.3", features = ["wgpu"] }

@@ -11,6 +11,7 @@ fn main() -> miette::Result<()> {
         &[
             &include_path.join("unblending/unblending/include"),
             &include_path.join("eigen"),
+            &PathBuf::from("src"),
         ],
     )
     .build()
@@ -36,7 +37,16 @@ fn main() -> miette::Result<()> {
     );
     println!("cargo:rustc-link-lib=static:+verbatim=libunblending.a");
 
-    // println!("cargo:rerun-if-changed=src/blobstore.cc");
-    // println!("cargo:rerun-if-changed=include/blobstore.h");
+    cc::Build::default()
+        .cpp(true)
+        .compiler("g++")
+        .include("src")
+        .include(&include_path.join("eigen"))
+        .file("src/unblending_helpers.cpp")
+        .compile("unblending_helpers");
+    println!("cargo:rerun-if-changed=src/unblending_helpers.hpp");
+    println!("cargo:rerun-if-changed=src/unblending_helpers.cpp");
+    println!("cargo:rustc-link-lib=static:+verbatim=libunblending_helpers.a");
+
     Ok(())
 }
