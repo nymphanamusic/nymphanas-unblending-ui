@@ -6,16 +6,30 @@
 #include <unblending/layer_info.hpp>
 #include <unblending/unblending.hpp>
 
-namespace unblending {
-    Eigen::Vector3d make_vector3d(float x, float y, float z) {
+namespace unblending_helpers {
+//    struct Vector3dWrapper {
+//        Eigen::Vector3d vec {};
+//
+//        Eigen::Vector3d get() {
+//            return vec;
+//        }
+//
+//        static inline load(Eigen::Vector3d vec) { vec };
+//
+//        double x() {
+//            return vec.x();
+//        }
+//    }
+
+    Eigen::Vector3d make_vector3d(double x, double y, double z) {
         return { x, y, z };
     }
 
-    Eigen::Vector4d make_vector4d(float x, float y, float z, float w) {
+    Eigen::Vector4d make_vector4d(double x, double y, double z, double w) {
         return { x, y, z, w };
     }
 
-    Eigen::Matrix3d make_matrix3d(float value) {
+    Eigen::Matrix3d make_matrix3d_s(double value) {
         Eigen::Matrix3d mat;
         for (int col = 0; col < 3; ++ col) {
             for (int row = 0; row < 3; ++ row) {
@@ -26,9 +40,9 @@ namespace unblending {
     }
 
     Eigen::Matrix3d make_matrix3d(
-        float m00, float m01, float m02,
-        float m10, float m11, float m12,
-        float m20, float m21, float m22
+        double m00, double m01, double m02,
+        double m10, double m11, double m12,
+        double m20, double m21, double m22
     ) {
         Eigen::Matrix3d mat;
         mat.coeffRef(0, 0) = m00;
@@ -43,16 +57,20 @@ namespace unblending {
         return mat;
     }
 
-    LayerInfo make_layer_info(
-        CompOp comp_op,
-        BlendMode blend_mode,
+    unblending::LayerInfo make_layer_info(
+        unblending::CompOp comp_op,
+        unblending::BlendMode blend_mode,
         Eigen::Vector3d primary_color,
         Eigen::Matrix3d variance
     ) {
-        return LayerInfo{
+        return unblending::LayerInfo{
             comp_op,
             blend_mode,
-            std::make_shared<GaussianColorModel>(primary_color, variance.inverse())
+            std::make_shared<unblending::GaussianColorModel>(primary_color, variance.inverse())
         };
+    }
+
+    void push_layer_info(std::vector<unblending::LayerInfo> &vec, unblending::LayerInfo &element) {
+      vec.emplace_back(std::move(element));
     }
 }
