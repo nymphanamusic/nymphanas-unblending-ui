@@ -41,13 +41,13 @@ impl Layer {
         };
 
         egui::ComboBox::from_label("Blend mode")
-            .selected_text(format!("{:?}", self.blend_mode.get_name()))
+            .selected_text(<BlendMode as Into<&str>>::into(self.blend_mode))
             .show_ui(ui, |ui| {
                 BlendMode::iter().for_each(|x| {
                     ui.selectable_value(
                         &mut self.blend_mode,
                         x.clone(),
-                        (&mut x.clone()).get_name(),
+                        <BlendMode as Into<&str>>::into(x),
                     );
                 });
             });
