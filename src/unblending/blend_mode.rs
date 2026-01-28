@@ -1,7 +1,7 @@
 use crate::unblending::common::Vec3;
-use strum_macros::IntoStaticStr;
+use strum_macros::{EnumCount, EnumIter, IntoStaticStr};
 
-#[derive(Copy, Clone, IntoStaticStr)]
+#[derive(Copy, Clone, PartialEq, IntoStaticStr, EnumCount, EnumIter)]
 pub enum BlendMode {
     Normal,
     Multiply,
@@ -20,24 +20,6 @@ pub enum BlendMode {
 
 impl BlendMode {
     const blend_function_internal_epsilon: f64 = 1e-05;
-
-    pub const ALL: [BlendMode; 13] = {
-        [
-            BlendMode::Normal,
-            BlendMode::Multiply,
-            BlendMode::Screen,
-            BlendMode::Overlay,
-            BlendMode::Darken,
-            BlendMode::Lighten,
-            BlendMode::ColorDodge,
-            BlendMode::ColorBurn,
-            BlendMode::HardLight,
-            BlendMode::SoftLight,
-            BlendMode::Difference,
-            BlendMode::Exclusion,
-            BlendMode::LinearDodge,
-        ]
-    }
 
     pub fn blend_grad_s(self: &Self, s: f64, d: f64, crop: Option<bool>) -> f64 {
         let crop = crop.unwrap_or(false);

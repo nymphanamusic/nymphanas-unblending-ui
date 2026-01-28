@@ -1,7 +1,8 @@
-use crate::unblending_ffi::unblending::BlendMode;
+use crate::unblending::blend_mode::BlendMode;
 use egui::ecolor::Hsva;
-use egui::{Color32, ColorImage, ImageSource, TextureHandle, Widget};
+use egui::{Color32, TextureHandle, Widget};
 use std::hash::{Hash, Hasher};
+use strum::IntoEnumIterator;
 use uuid::Uuid;
 
 #[derive(Clone)]
@@ -42,7 +43,7 @@ impl Layer {
         egui::ComboBox::from_label("Blend mode")
             .selected_text(format!("{:?}", self.blend_mode.get_name()))
             .show_ui(ui, |ui| {
-                BlendMode::ALL.iter().for_each(|x| {
+                BlendMode::iter().for_each(|x| {
                     ui.selectable_value(
                         &mut self.blend_mode,
                         x.clone(),
