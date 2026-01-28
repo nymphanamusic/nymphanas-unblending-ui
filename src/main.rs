@@ -1,19 +1,22 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 #![expect(rustdoc::missing_crate_level_docs)]
 
-use autocxx::prelude::Emplace;
-use autocxx::{as_copy, as_mov, c_int, WithinUniquePtr};
-use cxx::{CxxVector, UniquePtr};
+use crate::unblending::blend_mode::BlendMode;
+use crate::unblending::color_model::GaussianColorModel;
+use crate::unblending::common::{Mat3, Scalar, Vec3};
+use crate::unblending::comp_op::CompOp;
+use crate::unblending::layer_info::LayerInfo;
+use crate::unblending::unblending::compute_color_unmixing;
 use eframe::{egui, Frame};
 use egui::load::ImagePoll;
 use egui::{Color32, ColorImage, SizeHint, TextureHandle, TextureOptions, Vec2};
+use itertools::Itertools;
 use layer::Layer;
 use rfd::FileDialog;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::Read;
 use std::path::PathBuf;
-use std::pin::pin;
 use std::sync::mpsc;
 use std::sync::mpsc::{Receiver, Sender};
 use std::thread;
@@ -113,7 +116,7 @@ impl eframe::App for NymphanasUnblendingUI<'_> {
             if ui.button("Add layer").clicked() {
                 self.layers.push(Layer {
                     uuid: Uuid::new_v4(),
-                    blend_mode: unblending::BlendMode::Normal,
+                    blend_mode: BlendMode::Normal,
                     color: Color32::from_gray(255),
                     variance: 0.5,
                 });
@@ -213,32 +216,53 @@ fn processor(
 }
 
 fn do_process<'a>(image: &ColorImage, layers: &Vec<Layer>) -> HashMap<Uuid, ColorImage> {
-    let color_image = unblending_ffi::color_image_from_pixels(&image.pixels, image.size);
-    let mut layer_infos = CxxVector::<unblending::LayerInfo>::new();
-    for layer in layers {
-        let mut info = unblending_helpers::make_layer_info(
-            unblending::CompOp::SourceOver().within_unique_ptr(),
-            layer.blend_mode.clone(),
-            layer.color.r() as f64 / 255.0,
-            layer.color.g() as f64 / 255.0,
-            layer.color.b() as f64 / 255.0,
-            layer.variance,
-        )
-        .within_unique_ptr();
-        unblending_helpers::push_layer_info(layer_infos.pin_mut(), info.pin_mut());
-    }
+    let color_image = unblending::color_image::ColorImage {
+        width: image.width(),
+        height: image.height(),
+        pixels: image
+            .pixels
+            .iter()
+            .flat_map(|x| [x.r(), x.g(), x.b(), x.a()])
+            .map(|x| x as Scalar)
+            .collect_vec(),
+    };
+    let layer_infos = layers
+        .iter()
+        .map(|layer| LayerInfo {
+            comp_op: CompOp::SourceOver(),
+            blend_mode: layer.blend_mode.clone(),
+            color_model: GaussianColorModel {
+                mu: Vec3::new(
+                    layer.color.r() as f64 / 255.0,
+                    layer.color.g() as f64 / 255.0,
+                    layer.color.b() as f64 / 255.0,
+                ),
+                sigma_inv: Mat3::from_element(layer.variance).try_inverse().unwrap(),
+            },
+        })
+        .collect_vec();
 
     HashMap::from_iter(
         layers.iter().map(|x| x.uuid).zip(
-            unblending::compute_color_unmixing(&color_image, &layer_infos, true, c_int(12))
-                .pin_mut()
-                .iter_mut()
-                .map(|x| {
-                    ColorImage::new(
-                        image.size,
-                        unblending_ffi::pixels_from_color_image(x, image.size),
-                    )
-                }),
+            compute_color_unmixing(
+                &color_image,
+                &layer_infos.iter().by_ref().collect_vec(),
+                true,
+                None,
+            )
+            .iter()
+            .map(|x| {
+                ColorImage::new(
+                    image.size,
+                    x.iter_rgba()
+                        .map(|x| {
+                            Color32::from_rgba_premultiplied(
+                                x.x as u8, x.y as u8, x.z as u8, x.w as u8,
+                            )
+                        })
+                        .collect_vec(),
+                )
+            }),
         ),
     )
 }

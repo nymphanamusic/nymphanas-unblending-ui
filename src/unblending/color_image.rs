@@ -1,6 +1,7 @@
 use crate::unblending::common::{Mat3X, MatX, Scalar, Vec3, Vec4};
 use itertools::Itertools;
-use std::iter::repeat;
+use std::iter::{repeat, Map};
+use std::slice::Iter;
 
 pub enum ColorChannel {
     Red = 0,
@@ -12,7 +13,7 @@ pub enum ColorChannel {
 pub struct ColorImage {
     pub width: usize,
     pub height: usize,
-    pixels: Vec<Scalar>,
+    pub pixels: Vec<Scalar>,
 }
 
 impl ColorImage {
@@ -150,5 +151,13 @@ impl ColorImage {
             .for_each(|(this_pixel, other_pixel)| {
                 *this_pixel = other_pixel.clone();
             });
+    }
+
+    pub fn iter_rgba(self: &'_ Self) -> Map<Iter<'_, [Scalar; 4]>, fn(&[Scalar; 4]) -> Vec4> {
+        self.pixels
+            .as_chunks::<4>()
+            .0
+            .iter()
+            .map(|[x, y, z, w]| Vec4::new(*x, *y, *z, *w))
     }
 }
