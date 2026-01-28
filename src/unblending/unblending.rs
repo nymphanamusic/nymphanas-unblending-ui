@@ -23,10 +23,10 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 
 //(&[f64], Option<&mut [f64]>, T) -> f64
-fn objective_function<T>(
+fn objective_function<T: ColorModel>(
     x: &[Scalar],
     grad: Option<&mut [Scalar]>,
-    set: &mut OptimizationParameterSet,
+    set: &mut OptimizationParameterSet<T>,
 ) -> Scalar {
     let x = Mat4X::from_iterator(x.len() / 4, x.iter().cloned());
     let alphas = x.fixed_rows::<1>(3);
@@ -81,7 +81,7 @@ fn objective_function<T>(
     return unmixing_energy + lagrange + penalty;
 }
 
-fn find_initial_solution(models: &Vec<Box<&dyn ColorModel>>) -> Mat4X {
+fn find_initial_solution<T: ColorModel>(models: &Vec<&T>) -> Mat4X {
     let num_layers = models.len();
 
     let x_initial = Mat4X::from_columns(
@@ -93,8 +93,8 @@ fn find_initial_solution(models: &Vec<Box<&dyn ColorModel>>) -> Mat4X {
     x_initial
 }
 
-fn solve_per_pixel_optimization(
-    set: &mut OptimizationParameterSet,
+fn solve_per_pixel_optimization<T: ColorModel + Clone>(
+    set: &mut OptimizationParameterSet<T>,
     has_opaque_background: Option<bool>,
     initial_colors: Option<&Mat1X>,
     force_smooth_background: Option<bool>,
@@ -151,11 +151,11 @@ fn solve_per_pixel_optimization(
     loop {
         let x_new = Mat4X::from_iterator(
             num_layers,
-            nlopt_util::solve(
+            nlopt_util::solve::<OptimizationParameterSet<T>>(
                 x.data.as_slice(),
                 upper.as_slice(),
                 lower.as_slice(),
-                &objective_function::<OptimizationParameterSet>,
+                &objective_function,
                 None,
                 None,
                 Some(nlopt::Algorithm::Lbfgs),
@@ -234,10 +234,10 @@ fn normalize_alphas(alphas: &Mat1X, comp_ops: &Vec<CompOp>) -> Mat1X {
     return Mat1X::zeros(alphas.nrows());
 }
 
-fn perform_matte_refinement(
+pub fn perform_matte_refinement<T: ColorModel + Clone>(
     image: &ColorImage,
     layers: &Vec<&ColorImage>,
-    layer_infos: &Vec<&LayerInfo>,
+    layer_infos: &Vec<&LayerInfo<T>>,
     has_opaque_background: bool,
     force_smooth_background: bool,
     target_concurrency: Option<usize>,
@@ -379,9 +379,9 @@ fn perform_matte_refinement(
         .unwrap()
 }
 
-fn compute_color_unmixing(
+pub fn compute_color_unmixing<T: ColorModel + Clone>(
     image: &ColorImage,
-    layer_infos: &Vec<&LayerInfo>,
+    layer_infos: &Vec<&LayerInfo<T>>,
     has_opaque_background: bool,
     target_concurrency: Option<usize>,
 ) -> Vec<ColorImage> {

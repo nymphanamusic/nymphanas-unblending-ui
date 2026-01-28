@@ -4,8 +4,8 @@ use crate::unblending::common::{Mat1X, Vec3};
 use crate::unblending::comp_op::CompOp;
 
 #[derive(Clone)]
-pub struct OptimizationParameterSet<'a> {
-    pub models: Vec<Box<&'a dyn ColorModel>>,
+pub struct OptimizationParameterSet<'a, T: ColorModel> {
+    pub models: Vec<&'a T>,
     pub comp_ops: Vec<CompOp>,
     pub modes: Vec<BlendMode>,
 
@@ -21,10 +21,10 @@ pub struct OptimizationParameterSet<'a> {
     pub gray_layers: Vec<usize>, // A list of gray layer indices. For example, if the second and fourth layers are to be gray, it looks like { 1, 3 }.
 }
 
-impl<'a> OptimizationParameterSet<'a> {
+impl<'a, T: ColorModel> OptimizationParameterSet<'a, T> {
     pub fn new(
         target_color: Vec3,
-        models: Vec<Box<&'a dyn ColorModel>>,
+        models: Vec<&'a T>,
         comp_ops: Vec<CompOp>,
         modes: Vec<BlendMode>,
         is_for_refinement: Option<bool>,

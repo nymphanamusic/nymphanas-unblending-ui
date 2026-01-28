@@ -15,9 +15,10 @@ pub trait ColorModel: Sync {
     fn generate_visualization(self: &Self) -> Option<ColorImage>;
 }
 
-struct GaussianColorModel {
-    mu: Vec3,
-    sigma_inv: Mat3,
+#[derive(Clone)]
+pub struct GaussianColorModel {
+    pub mu: Vec3,
+    pub sigma_inv: Mat3,
 }
 
 impl GaussianColorModel {

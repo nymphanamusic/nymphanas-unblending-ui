@@ -73,10 +73,10 @@ pub fn calculate_penalty_term(constraint_vector: &Mat1X, rho: Scalar) -> Scalar 
     0.5 * rho * constraint_vector.norm_squared()
 }
 
-pub fn calculate_unmixing_energy_term(
+pub fn calculate_unmixing_energy_term<T: ColorModel>(
     alphas: &Mat1X,
     colors: &Mat3X,
-    models: &Vec<Box<&dyn ColorModel>>,
+    models: &Vec<&T>,
     sigma: Scalar,
     use_sparcity: bool,
     use_minimum_alpha: bool,
@@ -149,10 +149,10 @@ pub fn calculate_constraint_vector(
     constraints
 }
 
-pub fn calculate_derivative_of_unmixing_energy(
+pub fn calculate_derivative_of_unmixing_energy<T: ColorModel>(
     alphas: &Mat1X,
     colors: &Mat3X,
-    models: &Vec<Box<&dyn ColorModel>>,
+    models: &Vec<&T>,
     sigma: Scalar,
     use_sparcity: bool,
     use_minimum_alpha: bool,
@@ -478,9 +478,9 @@ pub fn composite_two_layers_wrapped(
     );
 }
 
-pub fn calculate_unmixing_energy_term_wrapped(
+pub fn calculate_unmixing_energy_term_wrapped<T: ColorModel>(
     x: Mat4X,
-    models: &Vec<Box<&dyn ColorModel>>,
+    models: &Vec<&T>,
     sigma: Scalar,
     use_sparcity: bool,
     use_minimum_alpha: bool,
