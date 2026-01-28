@@ -21,7 +21,7 @@ pub enum BlendMode {
 impl BlendMode {
     const blend_function_internal_epsilon: f64 = 1e-05;
 
-    pub fn get_all() -> [BlendMode; 13] {
+    pub const ALL: [BlendMode; 13] = {
         [
             BlendMode::Normal,
             BlendMode::Multiply,
