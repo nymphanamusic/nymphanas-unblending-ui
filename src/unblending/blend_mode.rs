@@ -1,6 +1,7 @@
 use crate::unblending::common::Vec3;
+use strum_macros::IntoStaticStr;
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, IntoStaticStr)]
 pub enum BlendMode {
     Normal,
     Multiply,
