@@ -1,5 +1,6 @@
 use crate::ui::PainterFrame;
 use crate::unblending::blend_mode::BlendMode;
+use crate::utils::Flag;
 use crate::ProcessedLayers;
 use eframe::emath::Vec2;
 use egui::ecolor::Hsva;
@@ -92,8 +93,16 @@ impl Layer {
         let row_index: usize;
         let layer_uuid: Uuid;
         let layer_index: usize;
+        let total_layers: usize;
+        let should_delete = Flag::new_rc();
         {
             row_index = row.index();
+            total_layers = Rc::clone(&layers).borrow().len();
+            if row_index >= total_layers {
+                // This is getting hit after deleting a layer that's not at the end. Maybe because of
+                // multi-renders?
+                return;
+            }
             layer_uuid = Rc::clone(&layers).borrow()[row_index].uuid;
             layer_index = Rc::clone(&layers)
                 .borrow_mut()
@@ -103,24 +112,40 @@ impl Layer {
         }
 
         // Layer order buttons
-        let layers_3 = Rc::clone(&layers);
+        let layers_cp = Rc::clone(&layers);
+        let should_delete_cp = Rc::clone(&should_delete);
         {
-            let layer_index_2 = layer_index.clone();
+            let layer_index_cp = layer_index.clone();
             let shift_layer = |offset| {
-                let new_index = layer_index_2 as isize + offset;
+                let new_index = layer_index_cp as isize + offset;
                 if new_index >= 0 && new_index < layers.borrow().len() as isize {
-                    layers.borrow_mut().swap(layer_index_2, new_index as usize);
+                    layers.borrow_mut().swap(layer_index_cp, new_index as usize);
+                }
+            };
+            let add_layer = |forward| {
+                let new_index = if forward {
+                    layer_index_cp as isize + 1
+                } else {
+                    layer_index as isize
+                };
+                if new_index >= 0 && new_index <= layers.borrow().len() as isize {
+                    layers
+                        .borrow_mut()
+                        .insert(new_index as usize, Layer::default());
                 }
             };
 
             row.col(|ui| {
                 ui.vertical_centered(move |ui| {
+                    let is_top = row_index == 0;
+                    let is_bottom = row_index == layers_cp.borrow().len() - 1;
+
                     let size = 16.0;
                     let paint_stroke =
-                        Stroke::new(3.0, ui.style().visuals.widgets.active.fg_stroke.color);
+                        Stroke::new(1.5, ui.style().visuals.widgets.active.fg_stroke.color);
 
                     // Move up button
-                    if row_index != 0 {
+                    if !is_top {
                         PainterFrame::new(move |painter, rect, hover_progress| {
                             let center = rect.center()
                                 + Vec2::new(0.0, egui::lerp(0.0..=-size / 8.0, hover_progress));
@@ -139,8 +164,40 @@ impl Layer {
                         .ui(ui);
                     }
 
+                    // Add above button
+                    PainterFrame::new(move |painter, rect, hover_progress| {
+                        let center = rect.center()
+                            + Vec2::new(0.0, egui::lerp(0.0..=-size / 8.0, hover_progress));
+                        paint_plus(&painter, center, size, paint_stroke.clone());
+                    })
+                    .on_click(|| {
+                        add_layer(false);
+                    })
+                    .ui(ui);
+
+                    // Delete button
+                    PainterFrame::new(move |painter, rect, _hover_progress| {
+                        let center = rect.center();
+                        paint_x(&painter, center, size, paint_stroke.clone());
+                    })
+                    .on_click(|| {
+                        should_delete_cp.borrow_mut().set();
+                    })
+                    .ui(ui);
+
+                    // Add below button
+                    PainterFrame::new(move |painter, rect, hover_progress| {
+                        let center = rect.center()
+                            + Vec2::new(0.0, egui::lerp(0.0..=size / 8.0, hover_progress));
+                        paint_plus(&painter, center, size, paint_stroke.clone());
+                    })
+                    .on_click(|| {
+                        add_layer(true);
+                    })
+                    .ui(ui);
+
                     // Move down button
-                    if row_index != layers_3.borrow().len() - 1 {
+                    if !is_bottom {
                         PainterFrame::new(move |painter, rect, hover_progress| {
                             let center = rect.center()
                                 + Vec2::new(0.0, egui::lerp(0.0..=size / 8.0, hover_progress));
@@ -161,9 +218,8 @@ impl Layer {
         }
 
         // Controls
-        let layers_2 = Rc::clone(&layers);
         {
-            let layer = &mut (layers_2.borrow_mut()[row.index()]);
+            let layer = &mut (layers.borrow_mut()[row.index()]);
             row.col(|ui| {
                 ui.vertical(|ui| {
                     ComboBox::from_label("Blend mode")
@@ -205,5 +261,45 @@ impl Layer {
                 };
             });
         }
+
+        if should_delete.borrow().is_set && total_layers != 1 {
+            layers.borrow_mut().remove(layer_index);
+        }
     }
+}
+
+fn paint_plus(painter: &egui::Painter, center: egui::Pos2, size: f32, stroke: Stroke) {
+    const RATIO: f32 = 0.25;
+    painter.line_segment(
+        [
+            center + [-size * RATIO, 0.0].into(),
+            center + [size * RATIO, 0.0].into(),
+        ],
+        stroke,
+    );
+    painter.line_segment(
+        [
+            center + [0.0, -size * RATIO].into(),
+            center + [0.0, size * RATIO].into(),
+        ],
+        stroke,
+    );
+}
+
+fn paint_x(painter: &egui::Painter, center: egui::Pos2, size: f32, stroke: Stroke) {
+    const RATIO: f32 = 0.25;
+    painter.line_segment(
+        [
+            center + [-size * RATIO, -size * RATIO].into(),
+            center + [size * RATIO, size * RATIO].into(),
+        ],
+        stroke,
+    );
+    painter.line_segment(
+        [
+            center + [-size * RATIO, size * RATIO].into(),
+            center + [size * RATIO, -size * RATIO].into(),
+        ],
+        stroke,
+    );
 }

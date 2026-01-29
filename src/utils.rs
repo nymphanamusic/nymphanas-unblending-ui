@@ -1,6 +1,8 @@
 use crate::unblending::common::{Mat3, Scalar, Vec4};
 use egui::Color32;
 use nalgebra::matrix;
+use std::cell::RefCell;
+use std::rc::Rc;
 
 const s: Scalar = 3.2;
 const offset: Scalar = 1e-03;
@@ -52,4 +54,22 @@ pub fn vec4_from_color(color: &Color32) -> Vec4 {
         color.b() as f64 / 255.0,
         color.a() as f64 / 255.0,
     )
+}
+
+pub struct Flag {
+    pub is_set: bool,
+}
+
+impl Flag {
+    pub fn new_rc() -> Rc<RefCell<Self>> {
+        Rc::new(RefCell::new(Flag { is_set: false }))
+    }
+
+    pub fn set(&mut self) {
+        self.is_set = true;
+    }
+
+    pub fn unset(&mut self) {
+        self.is_set = false;
+    }
 }
