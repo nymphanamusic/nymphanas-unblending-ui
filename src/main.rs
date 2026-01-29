@@ -34,6 +34,7 @@ use tracing_subscriber::fmt::SubscriberBuilder;
 use uuid::Uuid;
 
 mod layer;
+mod ui;
 mod unblending;
 mod utils;
 
