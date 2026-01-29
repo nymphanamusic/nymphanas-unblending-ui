@@ -74,7 +74,7 @@ impl Default for NymphanasUnblendingUI<'_> {
         Self {
             image_path: None,
             image: None,
-            layers: vec![],
+            layers: vec![Layer::default()],
             processed_layers: HashMap::new(),
             processor_handle: None,
             start_process_tx: None,
@@ -137,12 +137,7 @@ impl eframe::App for NymphanasUnblendingUI<'_> {
 
             // Layers
             if ui.button("Add layer").clicked() {
-                self.layers.push(Layer {
-                    uuid: Uuid::new_v4(),
-                    blend_mode: BlendMode::Normal,
-                    color: Color32::from_gray(255),
-                    variance: 0.5,
-                });
+                self.layers.push(Layer::default());
             }
             for (idx, layer) in self.layers.iter_mut().enumerate() {
                 ui.push_id(idx, |ui| {

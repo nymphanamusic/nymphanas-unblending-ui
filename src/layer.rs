@@ -35,6 +35,17 @@ impl Hash for Layer {
     }
 }
 
+impl Default for Layer {
+    fn default() -> Self {
+        Layer {
+            uuid: Uuid::new_v4(),
+            blend_mode: BlendMode::Normal,
+            color: Color32::from_gray(255),
+            variance: 0.5,
+        }
+    }
+}
+
 impl Layer {
     pub fn draw(&mut self, ui: &mut egui::Ui, processed: Option<&TextureHandle>) {
         if let Some(processed_texture) = processed {
