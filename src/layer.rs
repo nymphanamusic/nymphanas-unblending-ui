@@ -9,6 +9,7 @@ use egui_extras::{Column, TableBuilder, TableRow};
 use std::cell::RefCell;
 use std::fmt::Debug;
 use std::hash::{Hash, Hasher};
+use std::rc::Rc;
 use strum::IntoEnumIterator;
 use uuid::Uuid;
 
@@ -86,69 +87,83 @@ impl Layer {
         row: &mut TableRow,
         processed_layers: &ProcessedLayers,
     ) {
-        let layers = RefCell::new(layers);
+        let layers = Rc::new(RefCell::new(layers));
+
+        let row_index: usize;
+        let layer_uuid: Uuid;
+        let layer_index: usize;
+        {
+            row_index = row.index();
+            layer_uuid = Rc::clone(&layers).borrow()[row_index].uuid;
+            layer_index = Rc::clone(&layers)
+                .borrow_mut()
+                .iter()
+                .position(|x| x.uuid == layer_uuid)
+                .unwrap();
+        }
 
         // Layer order buttons
+        let layers_3 = Rc::clone(&layers);
         {
-            let shift_layer = |offset, uuid: Uuid| {
-                let index = layers
-                    .borrow_mut()
-                    .iter()
-                    .position(|x| x.uuid == uuid)
-                    .unwrap();
-                let new_index = index as isize + offset;
+            let layer_index_2 = layer_index.clone();
+            let shift_layer = |offset| {
+                let new_index = layer_index_2 as isize + offset;
                 if new_index >= 0 && new_index < layers.borrow().len() as isize {
-                    layers.borrow_mut().swap(index, new_index as usize);
+                    layers.borrow_mut().swap(layer_index_2, new_index as usize);
                 }
             };
 
-            let layer_uuid = layers.borrow()[row.index()].uuid;
-            row.col(move |ui| {
+            row.col(|ui| {
                 ui.vertical_centered(move |ui| {
                     let size = 16.0;
                     let paint_stroke =
                         Stroke::new(3.0, ui.style().visuals.widgets.active.fg_stroke.color);
 
                     // Move up button
-                    PainterFrame::new(move |painter, rect, hover_progress| {
-                        let center = rect.center()
-                            + Vec2::new(0.0, egui::lerp(0.0..=-size / 8.0, hover_progress));
-                        painter.line(
-                            vec![
-                                center + [-size / 4.0, size / 6.0].into(),
-                                center + [0.0, -size / 6.0].into(),
-                                center + [size / 4.0, size / 6.0].into(),
-                            ],
-                            paint_stroke.clone(),
-                        );
-                    })
-                    .on_click(move || {
-                        shift_layer(-1, layer_uuid);
-                    })
-                    .ui(ui);
+                    if row_index != 0 {
+                        PainterFrame::new(move |painter, rect, hover_progress| {
+                            let center = rect.center()
+                                + Vec2::new(0.0, egui::lerp(0.0..=-size / 8.0, hover_progress));
+                            painter.line(
+                                vec![
+                                    center + [-size / 4.0, size / 6.0].into(),
+                                    center + [0.0, -size / 6.0].into(),
+                                    center + [size / 4.0, size / 6.0].into(),
+                                ],
+                                paint_stroke.clone(),
+                            );
+                        })
+                        .on_click(|| {
+                            shift_layer(-1);
+                        })
+                        .ui(ui);
+                    }
 
                     // Move down button
-                    PainterFrame::new(move |painter, rect, hover_progress| {
-                        let center = rect.center()
-                            + Vec2::new(0.0, egui::lerp(0.0..=size / 8.0, hover_progress));
-                        painter.line(
-                            vec![
-                                center + [-size / 4.0, -size / 6.0].into(),
-                                center + [0.0, size / 6.0].into(),
-                                center + [size / 4.0, -size / 6.0].into(),
-                            ],
-                            paint_stroke.clone(),
-                        );
-                    })
-                    .on_click(move || shift_layer(1, layer_uuid))
-                    .ui(ui);
+                    if row_index != layers_3.borrow().len() - 1 {
+                        PainterFrame::new(move |painter, rect, hover_progress| {
+                            let center = rect.center()
+                                + Vec2::new(0.0, egui::lerp(0.0..=size / 8.0, hover_progress));
+                            painter.line(
+                                vec![
+                                    center + [-size / 4.0, -size / 6.0].into(),
+                                    center + [0.0, size / 6.0].into(),
+                                    center + [size / 4.0, -size / 6.0].into(),
+                                ],
+                                paint_stroke.clone(),
+                            );
+                        })
+                        .on_click(|| shift_layer(1))
+                        .ui(ui);
+                    }
                 });
             });
         }
 
         // Controls
+        let layers_2 = Rc::clone(&layers);
         {
-            let layer = &mut (layers.borrow_mut()[row.index()]);
+            let layer = &mut (layers_2.borrow_mut()[row.index()]);
             row.col(|ui| {
                 ui.vertical(|ui| {
                     ComboBox::from_label("Blend mode")
