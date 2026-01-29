@@ -40,7 +40,7 @@ pub fn composite_layers(
     modes: &Vec<BlendMode>,
     crop: bool,
 ) -> Vec4 {
-    let num_layers = alphas.nrows();
+    let num_layers = alphas.ncols();
 
     assert_eq!(num_layers, comp_ops.len());
     assert_eq!(num_layers, modes.len());
@@ -265,16 +265,16 @@ pub fn calculate_derivative_of_composite_two_layers_by_source(
         - comp_op.z as Scalar * x_d[3] * x_d.fixed_rows::<3>(0);
 
     // Row vector
-    let partial_B_per_partial_a_s = (partial_C_per_partial_a_s - B * partial_A_per_partial_a_s) / A;
+    let partial_B_per_partial_a_s =
+        ((partial_C_per_partial_a_s - B * partial_A_per_partial_a_s) / A).transpose();
 
     let mut derivative = Mat4::zeros();
     derivative[(0, 0)] = partial_B_per_partial_c_s[0];
     derivative[(1, 1)] = partial_B_per_partial_c_s[1];
     derivative[(2, 2)] = partial_B_per_partial_c_s[2];
     derivative[(3, 3)] = partial_A_per_partial_a_s;
-    // derivative.block<1, 3>(3, 0) = partial_B_per_partial_a_s;
     derivative
-        .view_mut((3, 0), (1, 3))
+        .fixed_view_mut::<1, 3>(3, 0)
         .copy_from(&partial_B_per_partial_a_s);
 
     derivative
@@ -312,7 +312,8 @@ pub fn calculate_derivative_of_composite_two_layers_by_destination(
         + comp_op.z as Scalar * (1.0 - x_s[3]) * x_d.fixed_rows::<3>(0);
 
     // Row vector
-    let partial_B_per_partial_a_d = (partial_C_per_partial_a_d - B * partial_A_per_partial_a_d) / A;
+    let partial_B_per_partial_a_d =
+        ((partial_C_per_partial_a_d - B * partial_A_per_partial_a_d) / A).transpose();
 
     let mut derivative = Mat4::zeros();
     derivative[(0, 0)] = partial_B_per_partial_c_d[0];
@@ -320,7 +321,7 @@ pub fn calculate_derivative_of_composite_two_layers_by_destination(
     derivative[(2, 2)] = partial_B_per_partial_c_d[2];
     derivative[(3, 3)] = partial_A_per_partial_a_d;
     derivative
-        .view_mut((3, 0), (1, 3))
+        .fixed_view_mut::<1, 3>(3, 0)
         .copy_from(&partial_B_per_partial_a_d);
 
     derivative
@@ -354,7 +355,7 @@ pub fn calculate_derivative_of_k_th_composited_rgba_by_i_th_layer_rgba(
     );
     let x_hat_k_minus_1 = composite_layers(
         &alphas.columns(0, k).into(),
-        &colors.columns(0, 3 * k).into(),
+        &colors.columns(0, k).into(),
         &comp_ops_k_minus_1,
         &modes_k_minus_1,
         false,
@@ -418,19 +419,19 @@ pub fn calculate_derivative_of_constraint_vector(
 
         if use_target_alphas {
             derivative
-                .view_mut((i, 0), (1, 3))
-                .copy_from(&i_th_derivative.view((3, 0), (1, 3)));
+                .fixed_view_mut::<1, 3>(i, 0)
+                .copy_from(&i_th_derivative.fixed_view::<1, 3>(3, 0));
             derivative
-                .view_mut((num_layers + i * 3, 0), (3, 3))
-                .copy_from(&i_th_derivative.view((0, 0), (3, 3)));
+                .fixed_view_mut::<3, 3>(num_layers + i * 3, 0)
+                .copy_from(&i_th_derivative.fixed_view::<3, 3>(0, 0));
             derivative[(i, 3 + i)] = 1.0;
         } else {
             derivative
-                .view_mut((i, 0), (1, 4))
-                .copy_from(&i_th_derivative.view((3, 0), (1, 4)));
+                .fixed_view_mut::<1, 4>(i, 0)
+                .copy_from(&i_th_derivative.fixed_view::<1, 4>(3, 0));
             derivative
-                .view_mut((num_layers + i * 3, 0), (3, 4))
-                .copy_from(&i_th_derivative.view((0, 0), (3, 4)));
+                .fixed_view_mut::<3, 4>(num_layers + i * 3, 0)
+                .copy_from(&i_th_derivative.fixed_view::<3, 4>(0, 0));
         }
     });
 
@@ -444,12 +445,9 @@ pub fn calculate_derivative_of_constraint_vector(
         let epsilon = 1e-03;
         if color.norm() > epsilon {
             derivative
-                .view_mut(
-                    (
-                        num_layers + gray_layer * 3,
-                        3 + num_alpha_constraints + i * 3,
-                    ),
-                    (3, 3),
+                .fixed_view_mut::<3, 3>(
+                    num_layers + gray_layer * 3,
+                    3 + num_alpha_constraints + i * 3,
                 )
                 .copy_from(&(3.0.sqrt() * Mat3::identity() - (1.0 / color.norm()) * ccc));
         }

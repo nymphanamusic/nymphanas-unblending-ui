@@ -234,7 +234,7 @@ fn normalize_alphas(alphas: &Mat1X, comp_ops: &Vec<CompOp>) -> Mat1X {
     }
 
     // This line is never performed
-    return Mat1X::zeros(alphas.nrows());
+    return Mat1X::zeros(alphas.ncols());
 }
 
 pub fn perform_matte_refinement<T: ColorModel + Clone>(
