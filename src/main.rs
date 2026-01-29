@@ -1,6 +1,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 #![expect(rustdoc::missing_crate_level_docs)]
 
+use crate::math::get_sigma;
 use crate::unblending::blend_mode::BlendMode;
 use crate::unblending::color_model::GaussianColorModel;
 use crate::unblending::common::{Mat3, Scalar, Vec3};
@@ -29,6 +30,7 @@ use tracing_subscriber::fmt::SubscriberBuilder;
 use uuid::Uuid;
 
 mod layer;
+mod math;
 mod unblending;
 
 type ProcessedLayers = HashMap<Uuid, TextureHandle>;
@@ -269,7 +271,7 @@ fn do_process<'a>(image: &ColorImage, layers: &Vec<Layer>) -> HashMap<Uuid, Colo
                     layer.color.g() as f64 / 255.0,
                     layer.color.b() as f64 / 255.0,
                 ),
-                sigma_inv: Mat3::from_element(layer.variance).try_inverse().unwrap(),
+                sigma_inv: get_sigma(layer.variance).try_inverse().unwrap(),
             },
         })
         .collect_vec();
