@@ -143,13 +143,6 @@ impl eframe::App for NymphanasUnblendingUI<'_> {
                     });
                 });
 
-            // Image display
-            CentralPanel::default().show_inside(ui, |ui| {
-                if let Some(image) = &self.image {
-                    ui.add((*image.clone()).fit_to_fraction([1.0, 1.0].into()));
-                };
-            });
-
             // Layers
             SidePanel::right("layers")
                 .default_width(400.0)
@@ -165,6 +158,13 @@ impl eframe::App for NymphanasUnblendingUI<'_> {
                             Layer::draw_all(ui, &mut self.layers, &self.processed_layers);
                         });
                 });
+
+            // Image display
+            CentralPanel::default().show_inside(ui, |ui| {
+                if let Some(image) = &self.image {
+                    ui.add((*image.clone()).fit_to_fraction([1.0, 1.0].into()));
+                };
+            });
         });
     }
 }
