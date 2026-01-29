@@ -1,6 +1,0 @@
-[submodule "include/unblending"]
-	path = external/unblending
-	url = https://github.com/yuki-koyama/unblending
-[submodule "include/eigen"]
-	path = external/eigen
-	url = https://gitlab.com/libeigen/eigen.git
