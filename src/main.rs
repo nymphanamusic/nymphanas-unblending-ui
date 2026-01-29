@@ -10,7 +10,11 @@ use crate::unblending::unblending::compute_color_unmixing;
 use crate::utils::{color_from_vec4, get_sigma, vec4_from_color};
 use eframe::{egui, Frame};
 use egui::load::ImagePoll;
-use egui::{Color32, ColorImage, SizeHint, TextureHandle, TextureOptions, Vec2};
+use egui::scroll_area::ScrollBarVisibility;
+use egui::{
+    CentralPanel, Color32, ColorImage, ScrollArea, SidePanel, SizeHint, TextureHandle,
+    TextureOptions, TopBottomPanel, Vec2,
+};
 use itertools::Itertools;
 use layer::Layer;
 use rfd::FileDialog;
@@ -107,52 +111,59 @@ impl eframe::App for NymphanasUnblendingUI<'_> {
             style.spacing.item_spacing = Vec2::new(10.0, 10.0);
         });
 
-        egui::CentralPanel::default().show(&ctx, |ui| {
+        CentralPanel::default().show(&ctx, |ui| {
             ui.heading("Nymphana's Unblending UI");
 
-            if ui.button("Run unblending").clicked() {
-                self.handle_begin_processing(&ctx);
-            }
+            // Top panel
+            TopBottomPanel::top("top_panel")
+                .resizable(false)
+                .min_height(32.0)
+                .show_inside(ui, |ui| {
+                    ui.horizontal(|ui| {
+                        if ui.button("Select file").clicked() {
+                            let files = FileDialog::new()
+                                .add_filter("Image", &["bmp", "jpeg", "jpg", "png"])
+                                .set_directory("~")
+                                .pick_file();
+                            files.inspect(|x| self.image_path = Some(x.into()));
+                            self.load_image();
+                        }
+                        if ui.button("Run unblending").clicked() {
+                            self.handle_begin_processing(&ctx);
+                        }
+                        // Image
+                        ui.label(format!(
+                            "Selected file: {}",
+                            match &self.image_path {
+                                Some(y) => y.to_str().unwrap_or("None"),
+                                None => "None",
+                            }
+                        ));
+                    });
+                });
 
-            ui.horizontal(|ui| {
-                if ui.button("Select file").clicked() {
-                    let files = FileDialog::new()
-                        .add_filter("Image", &["bmp", "jpeg", "jpg", "png"])
-                        .set_directory("~")
-                        .pick_file();
-                    files.inspect(|x| self.image_path = Some(x.into()));
-                    self.load_image();
-                }
+            // Image display
+            CentralPanel::default().show_inside(ui, |ui| {
+                if let Some(image) = &self.image {
+                    ui.add((*image.clone()).fit_to_fraction([1.0, 1.0].into()));
+                };
             });
 
-            // Image
-            ui.label(format!(
-                "Selected file: {}",
-                match &self.image_path {
-                    Some(y) => y.to_str().unwrap_or("None"),
-                    None => "None",
-                }
-            ));
-            if let Some(image) = &self.image {
-                ui.add((*image.clone()).max_size([200.0, 400.0].into()));
-            };
-
             // Layers
-            if ui.button("Add layer").clicked() {
-                self.layers.push(Layer::default());
-            }
-            for (idx, layer) in self.layers.iter_mut().enumerate() {
-                ui.push_id(idx, |ui| {
-                    layer.draw(ui, self.processed_layers.get(&layer.uuid))
+            SidePanel::right("layers")
+                .default_width(400.0)
+                .show_inside(ui, |ui| {
+                    if ui.button("Add layer").clicked() {
+                        self.layers.push(Layer::default());
+                    }
+
+                    ScrollArea::vertical()
+                        .auto_shrink(false)
+                        .scroll_bar_visibility(ScrollBarVisibility::VisibleWhenNeeded)
+                        .show(ui, |ui| {
+                            Layer::draw_all(ui, &mut self.layers, &self.processed_layers);
+                        });
                 });
-            }
-            for (idx, layer) in self.layers.iter().enumerate() {
-                ui.label(format!(
-                    "Layer \"{layer_idx}\" has color {color}",
-                    layer_idx = idx,
-                    color = layer.color.to_hex()
-                ));
-            }
         });
     }
 }
