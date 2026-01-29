@@ -180,12 +180,20 @@ impl NymphanasUnblendingUI<'_> {
         if let Some(image_path) = &self.image_path
             && let Some(start_process_tx) = &self.start_process_tx
         {
-            if let Ok(image_poll) =
-                ctx.try_load_image(image_path.to_str().unwrap(), SizeHint::Scale(1.0.into()))
-            {
-                start_process_tx
-                    .send((image_poll, self.layers.clone()))
-                    .unwrap();
+            debug!("Loading image");
+            match ctx.try_load_image(
+                &format!("bytes://{}", image_path.to_str().unwrap()),
+                SizeHint::Scale(1.0.into()),
+            ) {
+                Ok(image_poll) => {
+                    debug!("Sending image to processor");
+                    start_process_tx
+                        .send((image_poll, self.layers.clone()))
+                        .unwrap();
+                }
+                Err(err) => {
+                    error!(?err, "Failed to load image.");
+                }
             }
         }
     }
