@@ -63,7 +63,9 @@ fn objective_function<T: ColorModel>(
     );
 
     let gradient = derivative_of_unmixing_energy
-        + derivative_of_constraint_vector * (set.rho * &constraint_vector - &set.lambda);
+        + (derivative_of_constraint_vector
+            * (set.rho * &constraint_vector - &set.lambda).transpose())
+        .transpose();
 
     // Eigen::Map<VecX>(&grad[0], num_layers * 4) = gradient;
     grad.unwrap().copy_from_slice(&gradient.as_slice());

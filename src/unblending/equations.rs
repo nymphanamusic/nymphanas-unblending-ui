@@ -121,14 +121,15 @@ pub fn calculate_constraint_vector(
     let num_alpha_constraints = if use_target_alphas { num_layers } else { 1 };
 
     let mut constraints = Mat1X::from_element(3 + num_alpha_constraints + 3 * num_gray_layers, 0.0);
-    // constraints.segment < 3 > (0) = g_color;
-    constraints.rows_mut(0, 3).copy_from(&g_color);
+    constraints
+        .fixed_columns_mut::<3>(0)
+        .copy_from(&g_color.transpose());
 
     // Alpha constraints
     if use_target_alphas {
         let g_alpha = alphas - target_alphas;
         constraints
-            .rows_mut(3, num_alpha_constraints)
+            .columns_mut(3, num_alpha_constraints)
             .copy_from(&g_alpha);
     } else {
         let g_alpha = composited_color[3] - 1.0;
@@ -142,8 +143,8 @@ pub fn calculate_constraint_vector(
         let gray_constraint = 3.0f64.sqrt() * color - color.norm() * Vec3::from_element(1.0);
 
         constraints
-            .fixed_rows_mut::<3>(3 + num_alpha_constraints + (3 * i))
-            .copy_from(&gray_constraint);
+            .fixed_columns_mut::<3>(3 + num_alpha_constraints + (3 * i))
+            .copy_from(&gray_constraint.transpose());
     });
 
     constraints
@@ -166,8 +167,8 @@ pub fn calculate_derivative_of_unmixing_energy<T: ColorModel>(
         let u: Vec3 = colors.fixed_columns::<1>(idx).into();
 
         grad[idx] = m.calculate_distance(&u);
-        grad.fixed_rows_mut::<3>(num_layers + idx * 3)
-            .copy_from(&(alphas[idx] * m.calculate_distance_gradient(&u)));
+        grad.fixed_columns_mut::<3>(num_layers + idx * 3)
+            .copy_from(&(alphas[idx] * m.calculate_distance_gradient(&u)).transpose());
     });
 
     // Sparcity term
@@ -183,7 +184,7 @@ pub fn calculate_derivative_of_unmixing_energy<T: ColorModel>(
     // Minimum alpha term
     if use_minimum_alpha {
         let epsilon = 0.01;
-        grad.rows_mut(0, num_layers)
+        grad.columns_mut(0, num_layers)
             .copy_from(&(epsilon * Mat1X::from_element(num_layers, 1.0)));
     }
 
