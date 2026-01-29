@@ -1,4 +1,5 @@
 use crate::unblending::common::Vec3;
+use std::fmt::{Debug, Formatter};
 use strum_macros::{EnumCount, EnumIter, IntoStaticStr};
 
 #[derive(Copy, Clone, PartialEq, IntoStaticStr, EnumCount, EnumIter)]
@@ -16,6 +17,12 @@ pub enum BlendMode {
     Difference,
     Exclusion,
     LinearDodge,
+}
+
+impl Debug for BlendMode {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.into())
+    }
 }
 
 impl BlendMode {

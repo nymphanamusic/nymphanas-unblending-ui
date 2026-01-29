@@ -21,6 +21,7 @@ use std::iter::repeat_with;
 use std::num::NonZero;
 use std::sync::{Arc, Mutex};
 use std::thread;
+use tracing::{debug, instrument};
 
 //(&[f64], Option<&mut [f64]>, T) -> f64
 fn objective_function<T: ColorModel>(
@@ -379,12 +380,14 @@ pub fn perform_matte_refinement<T: ColorModel + Clone>(
         .unwrap()
 }
 
+#[instrument]
 pub fn compute_color_unmixing<T: ColorModel + Clone>(
     image: &ColorImage,
     layer_infos: &Vec<&LayerInfo<T>>,
     has_opaque_background: bool,
     target_concurrency: Option<usize>,
 ) -> Vec<ColorImage> {
+    debug!(?layer_infos, "Beginning color unmixing");
     // timer::Timer timer("compute_color_unmixing");
 
     let models = extract_color_models(layer_infos);
@@ -420,10 +423,12 @@ pub fn compute_color_unmixing<T: ColorModel + Clone>(
         });
     };
 
+    debug!("Beginning per-pixel process");
     thread::scope(|scope| {
         parallel_for_2d(width, height, target_concurrency, scope, per_pixel_process);
     });
 
+    debug!("Per-pixel process complete");
     return layers;
 }
 

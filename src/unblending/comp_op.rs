@@ -1,4 +1,6 @@
-#[derive(Copy, Clone)]
+use std::fmt::Debug;
+
+#[derive(Copy, Clone, Debug)]
 pub struct CompOp {
     pub x: u8,
     pub y: u8,

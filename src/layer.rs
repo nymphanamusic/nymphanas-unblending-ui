@@ -1,11 +1,12 @@
 use crate::unblending::blend_mode::BlendMode;
 use egui::ecolor::Hsva;
 use egui::{Color32, TextureHandle, Widget};
+use std::fmt::Debug;
 use std::hash::{Hash, Hasher};
 use strum::IntoEnumIterator;
 use uuid::Uuid;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Layer {
     pub uuid: Uuid,
     pub blend_mode: BlendMode,

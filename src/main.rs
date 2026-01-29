@@ -14,6 +14,7 @@ use itertools::Itertools;
 use layer::Layer;
 use rfd::FileDialog;
 use std::collections::HashMap;
+use std::fmt::{Debug, Formatter};
 use std::fs::File;
 use std::io::Read;
 use std::path::PathBuf;
@@ -22,6 +23,9 @@ use std::sync::mpsc::{Receiver, Sender};
 use std::thread;
 use std::thread::JoinHandle;
 use std::time::Duration;
+use tracing::subscriber::set_global_default;
+use tracing::{debug, error, info, instrument, Level};
+use tracing_subscriber::fmt::SubscriberBuilder;
 use uuid::Uuid;
 
 mod layer;
@@ -31,7 +35,14 @@ type ProcessedLayers = HashMap<Uuid, TextureHandle>;
 type StartProcess = (ImagePoll, Vec<Layer>);
 type FinishProcess = HashMap<Uuid, ColorImage>;
 
+#[instrument]
 fn main() -> eframe::Result {
+    let my_collector = SubscriberBuilder::default()
+        .with_max_level(Level::DEBUG)
+        .finish();
+    set_global_default(my_collector).expect("setting tracing default failed");
+    info!("Starting application");
+
     env_logger::init();
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default().with_inner_size([1280.0, 720.0]),
@@ -69,6 +80,18 @@ impl Default for NymphanasUnblendingUI<'_> {
             start_process_tx: None,
             finish_process_rx: None,
         }
+    }
+}
+
+impl Debug for NymphanasUnblendingUI<'_> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("NymphanasUnblendingUI")
+            .field("image_path", &self.image_path)
+            // .field("image", &self.image)
+            .field("layers", &self.layers)
+            .field("start_process_tx", &self.start_process_tx)
+            .field("finish_process_rx", &self.finish_process_rx)
+            .finish()
     }
 }
 
@@ -138,7 +161,9 @@ impl eframe::App for NymphanasUnblendingUI<'_> {
 }
 
 impl NymphanasUnblendingUI<'_> {
+    #[instrument]
     fn load_image(&mut self) {
+        info!("Loading image");
         if let Some(path) = &self.image_path
             && let Ok(mut file) = File::open(path)
         {
@@ -152,7 +177,9 @@ impl NymphanasUnblendingUI<'_> {
         }
     }
 
+    #[instrument]
     fn handle_begin_processing(&mut self, ctx: &egui::Context) {
+        info!("Begin processing");
         if let Some(image_path) = &self.image_path
             && let Some(start_process_tx) = &self.start_process_tx
         {
@@ -180,9 +207,11 @@ impl NymphanasUnblendingUI<'_> {
         self.finish_process_rx = Some(finish_process_rx);
     }
 
+    #[instrument]
     fn receive_processed_layers(&mut self, ctx: &egui::Context) {
         if let Some(finish_process_rx) = &self.finish_process_rx {
             if let Ok(received) = finish_process_rx.try_recv() {
+                debug!("Receiving processed layer");
                 self.processed_layers =
                     HashMap::from_iter(received.iter().map(|(&uuid, color_image)| {
                         (
@@ -199,23 +228,30 @@ impl NymphanasUnblendingUI<'_> {
     }
 }
 
+#[instrument]
 fn processor(
     start_process_rx: Receiver<StartProcess>,
     finish_process_tx: Sender<FinishProcess>,
 ) -> Result<(), ()> {
     for (image_poll, layers) in start_process_rx {
+        debug!("Received image process request; loading");
         while let ImagePoll::Pending { size: _ } = image_poll {
             thread::sleep(Duration::from_secs_f32(0.1))
         }
         let ImagePoll::Ready { image } = image_poll else {
             panic!("ImagePoll stopped pending but had no Ready")
         };
-        finish_process_tx.send(do_process(&image, &layers));
+        debug!("Beginning image processing");
+        let processed = do_process(&image, &layers);
+        debug!("Sending processed image back to main thread");
+        finish_process_tx.send(processed).unwrap();
     }
     Ok(())
 }
 
+#[instrument]
 fn do_process<'a>(image: &ColorImage, layers: &Vec<Layer>) -> HashMap<Uuid, ColorImage> {
+    debug!("Converting egui image to unblending image");
     let color_image = unblending::color_image::ColorImage {
         width: image.width(),
         height: image.height(),
@@ -226,6 +262,7 @@ fn do_process<'a>(image: &ColorImage, layers: &Vec<Layer>) -> HashMap<Uuid, Colo
             .map(|x| x as Scalar)
             .collect_vec(),
     };
+    debug!("Collecting layer infos");
     let layer_infos = layers
         .iter()
         .map(|layer| LayerInfo {

@@ -1,7 +1,9 @@
 use crate::unblending::blend_mode::BlendMode;
 use crate::unblending::color_model::ColorModel;
 use crate::unblending::comp_op::CompOp;
+use std::fmt::Debug;
 
+#[derive(Debug)]
 pub struct LayerInfo<T: ColorModel> {
     pub comp_op: CompOp,
     pub blend_mode: BlendMode,

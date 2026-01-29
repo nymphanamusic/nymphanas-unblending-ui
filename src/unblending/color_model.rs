@@ -3,9 +3,10 @@ use crate::unblending::common::{Mat2, Mat3, Scalar, Vec2, Vec3};
 use nalgebra::{SimdPartialOrd, SymmetricEigen};
 use std::cell::RefCell;
 use std::f64::consts::{FRAC_PI_2, PI};
+use std::fmt::Debug;
 use std::ops::MulAssign;
 
-pub trait ColorModel: Sync {
+pub trait ColorModel: Sync + Debug {
     fn calculate_distance(self: &Self, color: &Vec3) -> Scalar;
 
     fn calculate_distance_gradient(self: &Self, color: &Vec3) -> Vec3;
@@ -15,7 +16,7 @@ pub trait ColorModel: Sync {
     fn generate_visualization(self: &Self) -> Option<ColorImage>;
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct GaussianColorModel {
     pub mu: Vec3,
     pub sigma_inv: Mat3,

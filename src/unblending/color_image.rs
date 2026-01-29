@@ -1,5 +1,6 @@
 use crate::unblending::common::{Mat3X, MatX, Scalar, Vec3, Vec4};
 use itertools::Itertools;
+use std::fmt::{Debug, Formatter};
 use std::iter::{repeat, Map};
 use std::slice::Iter;
 
@@ -14,6 +15,15 @@ pub struct ColorImage {
     pub width: usize,
     pub height: usize,
     pub pixels: Vec<Scalar>,
+}
+
+impl Debug for ColorImage {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ColorImage")
+            .field("width", &self.width)
+            .field("height", &self.height)
+            .finish()
+    }
 }
 
 impl ColorImage {
