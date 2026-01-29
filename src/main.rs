@@ -1,13 +1,13 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 #![expect(rustdoc::missing_crate_level_docs)]
 
-use crate::math::get_sigma;
 use crate::unblending::blend_mode::BlendMode;
 use crate::unblending::color_model::GaussianColorModel;
 use crate::unblending::common::{Mat3, Scalar, Vec3};
 use crate::unblending::comp_op::CompOp;
 use crate::unblending::layer_info::LayerInfo;
 use crate::unblending::unblending::compute_color_unmixing;
+use crate::utils::{color_from_vec4, get_sigma, vec4_from_color};
 use eframe::{egui, Frame};
 use egui::load::ImagePoll;
 use egui::{Color32, ColorImage, SizeHint, TextureHandle, TextureOptions, Vec2};
@@ -30,8 +30,8 @@ use tracing_subscriber::fmt::SubscriberBuilder;
 use uuid::Uuid;
 
 mod layer;
-mod math;
 mod unblending;
+mod utils;
 
 type ProcessedLayers = HashMap<Uuid, TextureHandle>;
 type StartProcess = (ImagePoll, Vec<Layer>);
@@ -263,8 +263,7 @@ fn do_process<'a>(image: &ColorImage, layers: &Vec<Layer>) -> HashMap<Uuid, Colo
         pixels: image
             .pixels
             .iter()
-            .flat_map(|x| [x.r(), x.g(), x.b(), x.a()])
-            .map(|x| x as Scalar)
+            .flat_map(|x| vec4_from_color(x).into_iter().cloned().collect_vec())
             .collect_vec(),
     };
     debug!("Collecting layer infos");
@@ -274,11 +273,7 @@ fn do_process<'a>(image: &ColorImage, layers: &Vec<Layer>) -> HashMap<Uuid, Colo
             comp_op: CompOp::SourceOver(),
             blend_mode: layer.blend_mode.clone(),
             color_model: GaussianColorModel {
-                mu: Vec3::new(
-                    layer.color.r() as f64 / 255.0,
-                    layer.color.g() as f64 / 255.0,
-                    layer.color.b() as f64 / 255.0,
-                ),
+                mu: vec4_from_color(&layer.color).xyz(),
                 sigma_inv: get_sigma(layer.variance).try_inverse().unwrap(),
             },
         })
@@ -296,13 +291,7 @@ fn do_process<'a>(image: &ColorImage, layers: &Vec<Layer>) -> HashMap<Uuid, Colo
             .map(|x| {
                 ColorImage::new(
                     image.size,
-                    x.iter_rgba()
-                        .map(|x| {
-                            Color32::from_rgba_premultiplied(
-                                x.x as u8, x.y as u8, x.z as u8, x.w as u8,
-                            )
-                        })
-                        .collect_vec(),
+                    x.iter_rgba().map(|x| color_from_vec4(&x)).collect_vec(),
                 )
             }),
         ),

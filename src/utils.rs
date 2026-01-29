@@ -1,4 +1,5 @@
-use crate::unblending::common::{Mat3, Scalar};
+use crate::unblending::common::{Mat3, Scalar, Vec4};
+use egui::Color32;
 use nalgebra::matrix;
 
 const s: Scalar = 3.2;
@@ -32,5 +33,23 @@ pub fn get_sigma_full(
         s1.powf(s) + offset, 0.1 * (s4 - 0.5), 0.0;
         0.0, s2.powf(s) + offset, 0.1 * (s5 - 0.5);
         0.1 * (s6 - 0.5), 0.0, s3.powf(s) + offset
+    )
+}
+
+pub fn color_from_vec4(v: &Vec4) -> Color32 {
+    Color32::from_rgba_unmultiplied(
+        (v.x * 255.0) as u8,
+        (v.y * 255.0) as u8,
+        (v.z * 255.0) as u8,
+        (v.w * 255.0) as u8,
+    )
+}
+
+pub fn vec4_from_color(color: &Color32) -> Vec4 {
+    Vec4::new(
+        color.r() as f64 / 255.0,
+        color.g() as f64 / 255.0,
+        color.b() as f64 / 255.0,
+        color.a() as f64 / 255.0,
     )
 }
