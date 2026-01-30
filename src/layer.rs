@@ -96,13 +96,14 @@ impl Layer {
         let total_layers: usize;
         let should_delete = Flag::new_rc();
         {
-            row_index = row.index();
             total_layers = Rc::clone(&layers).borrow().len();
-            if row_index >= total_layers {
+            if row.index() >= total_layers {
                 // This is getting hit after deleting a layer that's not at the end. Maybe because of
                 // multi-renders?
                 return;
             }
+            // Layers later in the list composite on top of previous layers
+            row_index = total_layers - 1 - row.index();
             layer_uuid = Rc::clone(&layers).borrow()[row_index].uuid;
             layer_index = Rc::clone(&layers)
                 .borrow_mut()
