@@ -147,10 +147,6 @@ impl eframe::App for NymphanasUnblendingUI<'_> {
             SidePanel::right("layers")
                 .default_width(400.0)
                 .show_inside(ui, |ui| {
-                    if ui.button("Add layer").clicked() {
-                        self.layers.push(Layer::default());
-                    }
-
                     ScrollArea::vertical()
                         .auto_shrink(false)
                         .scroll_bar_visibility(ScrollBarVisibility::VisibleWhenNeeded)
