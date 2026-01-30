@@ -137,13 +137,14 @@ impl Layer {
             };
 
             row.col(|ui| {
-                ui.vertical_centered(move |ui| {
-                    let is_top = row_index == 0;
-                    let is_bottom = row_index == layers_cp.borrow().len() - 1;
+                ui.vertical_centered(|ui| {
+                    let is_top = row_index == layers_cp.borrow().len() - 1;
+                    let is_bottom = row_index == 0;
 
                     let size = 16.0;
                     let paint_stroke =
                         Stroke::new(1.5, ui.style().visuals.widgets.active.fg_stroke.color);
+                    let add_button_color = Color32::from_rgb(43, 63, 116);
 
                     // Move up button
                     if !is_top {
@@ -171,20 +172,24 @@ impl Layer {
                             + Vec2::new(0.0, egui::lerp(0.0..=-size / 8.0, hover_progress));
                         paint_plus(&painter, center, size, paint_stroke.clone());
                     })
+                    .bg_fill(add_button_color)
                     .on_click(|| {
                         add_layer(false);
                     })
                     .ui(ui);
 
                     // Delete button
-                    PainterFrame::new(move |painter, rect, _hover_progress| {
-                        let center = rect.center();
-                        paint_x(&painter, center, size, paint_stroke.clone());
-                    })
-                    .on_click(|| {
-                        should_delete_cp.borrow_mut().set();
-                    })
-                    .ui(ui);
+                    if total_layers != 1 {
+                        PainterFrame::new(move |painter, rect, _hover_progress| {
+                            let center = rect.center();
+                            paint_x(&painter, center, size, paint_stroke.clone());
+                        })
+                        .bg_fill(Color32::from_rgb(95, 44, 44))
+                        .on_click(|| {
+                            should_delete_cp.borrow_mut().set();
+                        })
+                        .ui(ui);
+                    }
 
                     // Add below button
                     PainterFrame::new(move |painter, rect, hover_progress| {
@@ -192,6 +197,7 @@ impl Layer {
                             + Vec2::new(0.0, egui::lerp(0.0..=size / 8.0, hover_progress));
                         paint_plus(&painter, center, size, paint_stroke.clone());
                     })
+                    .bg_fill(add_button_color)
                     .on_click(|| {
                         add_layer(true);
                     })

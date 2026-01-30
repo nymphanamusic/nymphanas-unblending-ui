@@ -1,4 +1,4 @@
-use egui::{Frame, Response, Sense, Widget};
+use egui::{Color32, Frame, Response, Sense, Widget};
 use extend::ext;
 
 #[ext]
@@ -56,6 +56,8 @@ pub struct PainterFrame<'click, 'paint> {
     pub desired_size: Option<egui::Vec2>,
     pub on_click_handler: Option<Box<dyn FnMut() + 'click>>,
     pub paint_handler: Box<dyn FnMut(&egui::Painter, &egui::Rect, f32) + 'paint>,
+    pub bg_fill: Option<Color32>,
+    pub bg_stroke: Option<egui::Stroke>,
 }
 
 impl<'click, 'paint> PainterFrame<'click, 'paint> {
@@ -64,6 +66,8 @@ impl<'click, 'paint> PainterFrame<'click, 'paint> {
             desired_size: None,
             on_click_handler: None,
             paint_handler: Box::new(paint_handler),
+            bg_fill: None,
+            bg_stroke: None,
         }
     }
 
@@ -73,6 +77,14 @@ impl<'click, 'paint> PainterFrame<'click, 'paint> {
     }
     pub fn on_click<'a>(mut self, handler: impl FnMut() + 'click) -> Self {
         self.on_click_handler = Some(Box::new(handler));
+        self
+    }
+    pub fn bg_fill<'a>(mut self, color: Color32) -> Self {
+        self.bg_fill = Some(color);
+        self
+    }
+    pub fn bg_stroke<'a>(mut self, stroke: egui::Stroke) -> Self {
+        self.bg_stroke = Some(stroke);
         self
     }
 }
@@ -104,8 +116,8 @@ impl<'click, 'paint> Widget for PainterFrame<'click, 'paint> {
             ui.painter().rect(
                 rect,
                 visuals.corner_radius,
-                visuals.bg_fill,
-                visuals.bg_stroke,
+                self.bg_fill.unwrap_or(visuals.bg_fill),
+                self.bg_stroke.unwrap_or(visuals.bg_stroke),
                 egui::StrokeKind::Inside,
             );
 
